@@ -1,6 +1,11 @@
 '''
  *    author:  Ishaan Gupta
- *    created: 9.11.2020 12:04:06       
+ *    created: 9.11.2020 12:04:06  
+'''
+
+'''
+ *    author: Edoardo Panichi 
+ *    modifications started: 10.07.2022 
 '''
 
 import chess
@@ -67,8 +72,12 @@ def rollout(curr_node):
 
     return rollout(rnd_state) # recursive function until the game ends 
 
+# white --> 1
+# black --> 0
 def expand(curr_node, white):
     
+    # when the curr_node has no children we need to find the possible children running ROLLOUT. 
+    # The integration of expand and rollout is handled in the mcts_pred function.
     if(len(curr_node.children) == 0):
         return curr_node
     
@@ -77,94 +86,120 @@ def expand(curr_node, white):
         idx = -1
         max_ucb = -inf
         sel_child = None
-        for i in curr_node.children:
-            tmp = ucb1(i)
-            if(tmp>max_ucb):
-                idx = i
+        for child in curr_node.children:
+            tmp = ucb1(child)
+            if(tmp > max_ucb):
+                idx = child
                 max_ucb = tmp
-                sel_child = i
+                sel_child = child
 
-        return(expand(sel_child, 0))
+        return(expand(sel_child, 0)) # recursive function until we end up in a state for which the children 
+        # have not been defined yet, i.e. we have not executed ROLLOUT phase. Every time we call again the 
+        # function expand we change the color, cause the a move has been played.
 
     else:
         idx = -1
         min_ucb = inf
         sel_child = None
-        for i in curr_node.children:
-            tmp = ucb1(i)
-            if(tmp<min_ucb):
-                idx = i
+        for child in curr_node.children:
+            tmp = ucb1(child)
+            if(tmp < min_ucb):
+                idx = child
                 min_ucb = tmp
-                sel_child = i
+                sel_child = child
 
-        return expand(sel_child,1)
+        return expand(sel_child, 1)
 
-def rollback(curr_node,reward):
-    curr_node.n+=1
-    curr_node.v+=reward
-    while(curr_node.parent!=None):
-        curr_node.N+=1
+def backpropagation(curr_node, reward):
+    curr_node.n += 1
+    curr_node.v += reward
+    
+    # if the current node has a parent, we need to update the value of N for curr_node. Once done that, we 
+    # can move one step upwards in the tree to update N of its parent and so on until we reach the starting 
+    # node.
+    while(curr_node.parent != None):
+        curr_node.N += 1
         curr_node = curr_node.parent
-    return curr_node
+        
+    return curr_node # at the end of the backpropagation the curr_node will be the starting node, i.e. the 
+    # node we started from seeking for the best action to take.
 
-def mcts_pred(curr_node, over, white, iterations=10):
+def mcts_pred(curr_node, over, white, iterations = 10):
+    
     if(over):
         return -1
+    
+    # given all the legal moves, we generate a list of the move in SAN notation (e.g Be4 - Bishop to e4)
     all_moves = [curr_node.state.san(i) for i in list(curr_node.state.legal_moves)]
+    
+    # the following dictionary contains couples of state-move
     map_state_move = dict()
     
-    for i in all_moves:
+    for move in all_moves:
+        # With the following line of code a new board is created to analyze the evolution of the state throughout
+        # the following steps. A new board is created for each possible move available in curr_node position.
         tmp_state = chess.Board(curr_node.state.fen())
-        tmp_state.push_san(i)
+        tmp_state.push_san(move)
         child = node()
         child.state = tmp_state
         child.parent = curr_node
+        # the newly generated state (where the new move has been played) has to be added to the children list
+        # of the current node.
         curr_node.children.add(child)
-        map_state_move[child] = i
+        map_state_move[child] = move
         
-    while(iterations>0):
+    while(iterations > 0):
+        # We need to select the action that leads to the highest ucb1. Once found that state, we can run over
+        # it the expand, rollout and backpropagation functions
         if(white):
             idx = -1
             max_ucb = -inf
             sel_child = None
-            for i in curr_node.children:
-                tmp = ucb1(i)
-                if(tmp>max_ucb):
-                    idx = i
+            for child in curr_node.children:
+                tmp = ucb1(child)
+                if(tmp > max_ucb):
+                    idx = child
                     max_ucb = tmp
-                    sel_child = i
-            ex_child = expand(sel_child,0)
-            reward,state = rollout(ex_child)
-            curr_node = rollback(state,reward)
-            iterations-=1
+                    sel_child = child
+                    
+            ex_child = expand(sel_child, 0)
+            reward, state = rollout(ex_child)
+            curr_node = backpropagation(state, reward)
+            iterations -= 1
+            
         else:
             idx = -1
             min_ucb = inf
             sel_child = None
-            for i in curr_node.children:
-                tmp = ucb1(i)
+            for child in curr_node.children:
+                tmp = ucb1(child)
                 if(tmp<min_ucb):
-                    idx = i
+                    idx = child
                     min_ucb = tmp
-                    sel_child = i
+                    sel_child = child
 
-            ex_child = expand(sel_child,1)
+            ex_child = expand(sel_child, 1)
 
-            reward,state = rollout(ex_child)
+            reward, state = rollout(ex_child)
 
-            curr_node = rollback(state,reward)
-            iterations-=1
+            curr_node = backpropagation(state, reward)
+            iterations -= 1
+    
+    # When the code gets it MCTS has already run for all the required iteration, therefore we have all the 
+    # information to infer which action should lead to the best result.       
     if(white):
-        
         mx = -inf
         idx = -1
         selected_move = ''
-        for i in (curr_node.children):
-            tmp = ucb1(i)
-            if(tmp>mx):
+        
+        for child in (curr_node.children):
+            tmp = ucb1(child)
+            if(tmp > mx):
                 mx = tmp
-                selected_move = map_state_move[i]
+                selected_move = map_state_move[child]
+                
         return selected_move
+    
     else:
         mn = inf
         idx = -1
@@ -181,6 +216,9 @@ engine = chess.engine.SimpleEngine.popen_uci(r'C:\Users\ishaa\Desktop\chess_engi
 
 white = 1
 moves = 0
+# PGN (Portable Game Notation) is an easy-to-read format which records both the moves of the game 
+# (in standard algebraic notation) and any related data such as the names of the players, the winner/loser, 
+# and even the date the game was played.
 pgn = []
 game = chess.pgn.Game()
 evaluations = []
@@ -188,20 +226,23 @@ sm = 0
 cnt = 0
 while((not board.is_game_over())):
     all_moves = [board.san(i) for i in list(board.legal_moves)]
-    #start = time.time()
     root = node()
     root.state = board
-    result = mcts_pred(root,board.is_game_over(),white)
-    #sm+=(time.time()-start)
+    
+    result = mcts_pred(root, board.is_game_over(), white)
     board.push_san(result)
-    #print(result)
+    
     pgn.append(result)
+    
+    # the operator ^= Performs Bitwise OR on operands and assign value to left operand. This means that the 
+    # value of white is flipped between 0 and 1 after each move.
     white ^= 1
     #cnt+=1
     
-    moves+=1
+    moves += 1
     #board_evaluation = evaluate(board.fen().split()[0])
     #evaluations.append(board_evaluation)
+    
 #print("Average Time per move = ",sm/cnt)
 print(board)
 print(" ".join(pgn))
