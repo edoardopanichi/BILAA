@@ -18,4 +18,4 @@
     make net
     make build ARCH=x86-64-modern
     ```
-- then in the code: Stockfish(path="/Users/edoardo/Downloads/Stockfish-master/src/stockfish")
+- then if you move the folder Stockfish-master into the folder of this repository, the code will work correctly. Otherwise you need to modify the absolute path in where the stockfish engine is initialized. For example: Stockfish(path="/Users/edoardo/Downloads/Stockfish-master/src/stockfish")

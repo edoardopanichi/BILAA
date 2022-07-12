@@ -22,7 +22,9 @@ class chessboard:
     
 class stockfish_eng:
     def __init__(self):
-        self.engine = Stockfish(path="/Users/edoardo/Desktop/BILAA/Stockfish-master/src/stockfish")
+        # Ubuntu: /home/edoardo/Desktop/BILAA/Stockfish-master/src/stockfish
+        # Mac: /Users/edoardo/Desktop/BILAA/Stockfish-master/src/stockfish
+        self.engine = Stockfish(path="../Stockfish-master/src/stockfish")
         
     def play_best_move(self, board):
         self.engine.set_fen_position(board.fen())
