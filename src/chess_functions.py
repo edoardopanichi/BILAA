@@ -1,5 +1,6 @@
 import chess
 import numpy as np
+from stockfish import Stockfish
 
 class chessboard:
     def __init__(self):
@@ -18,6 +19,16 @@ class chessboard:
             game_finished = True
             
         return game_finished
+    
+class stockfish_eng:
+    def __init__(self):
+        self.engine = Stockfish(path="/Users/edoardo/Desktop/BILAA/Stockfish-master/src/stockfish")
+        
+    def play_best_move(self, board):
+        self.engine.set_fen_position(board.fen())
+        move = self.engine.get_best_move()
+        
+        return move
         
 
     

@@ -3,6 +3,19 @@
 - https://arxiv.org/pdf/1711.08337.pdf
 - https://medium.com/@ishaan.gupta0401/monte-carlo-tree-search-application-on-chess-5573fc0efb75 
 
-Possible modification needed:
+## Possible modification needed:
 - self.v in MCST might be calculated as average of value of the state Si. Check notes on iPad
 - ROLLOUT procedure might be substituted with a NN whose weights are picked with the EA 
+
+## Documentation: 
+- Stockfish library: https://pypi.org/project/stockfish/
+
+## Install stockfish:
+- download the repository: https://github.com/official-stockfish/Stockfish
+- ```bash 
+    cd src
+    make help
+    make net
+    make build ARCH=x86-64-modern
+    ```
+- then in the code: Stockfish(path="/Users/edoardo/Downloads/Stockfish-master/src/stockfish")

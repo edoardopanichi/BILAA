@@ -124,7 +124,7 @@ def backpropagation(curr_node, reward):
     return curr_node # at the end of the backpropagation the curr_node will be the starting node, i.e. the 
     # node we started from seeking for the best action to take.
 
-def mcts_pred(curr_node, over, white, iterations = 10):
+def mcts_pred(curr_node, over, white, iterations = 3):
     
     if(over):
         return -1
@@ -173,7 +173,7 @@ def mcts_pred(curr_node, over, white, iterations = 10):
             sel_child = None
             for child in curr_node.children:
                 tmp = ucb1(child)
-                if(tmp<min_ucb):
+                if(tmp < min_ucb):
                     idx = child
                     min_ucb = tmp
                     sel_child = child
@@ -211,44 +211,48 @@ def mcts_pred(curr_node, over, white, iterations = 10):
                 selected_move = map_state_move[i]
         return selected_move
 
-board = chess.Board()
-engine = chess.engine.SimpleEngine.popen_uci(r'C:\Users\ishaa\Desktop\chess_engine\stockfish-11-win\Windows\stockfish_20011801_x64.exe')
+# board = chess.Board()
+# #engine = chess.engine.SimpleEngine.popen_uci(r'C:\Users\ishaa\Desktop\chess_engine\stockfish-11-win\Windows\stockfish_20011801_x64.exe')
 
-white = 1
-moves = 0
-# PGN (Portable Game Notation) is an easy-to-read format which records both the moves of the game 
-# (in standard algebraic notation) and any related data such as the names of the players, the winner/loser, 
-# and even the date the game was played.
-pgn = []
-game = chess.pgn.Game()
-evaluations = []
-sm = 0
-cnt = 0
-while((not board.is_game_over())):
-    all_moves = [board.san(i) for i in list(board.legal_moves)]
-    root = node()
-    root.state = board
+# white = 1
+# moves = 0
+# # PGN (Portable Game Notation) is an easy-to-read format which records both the moves of the game 
+# # (in standard algebraic notation) and any related data such as the names of the players, the winner/loser, 
+# # and even the date the game was played.
+# pgn = []
+# # To export your game with all headers, comments and variations, you can do it like this:
+# game = chess.pgn.Game()
+
+# # evaluations = []
+# # sm = 0
+# # cnt = 0
+# while((not board.is_game_over())):
+#     all_moves = [board.san(i) for i in list(board.legal_moves)]
+#     root = node()
+#     root.state = board
     
-    result = mcts_pred(root, board.is_game_over(), white)
-    board.push_san(result)
+#     result = mcts_pred(root, board.is_game_over(), white)
+#     board.push_san(result)
+#     print("\nmove played:", result)
+#     print(board)
     
-    pgn.append(result)
+#     pgn.append(result)
     
-    # the operator ^= Performs Bitwise OR on operands and assign value to left operand. This means that the 
-    # value of white is flipped between 0 and 1 after each move.
-    white ^= 1
-    #cnt+=1
+#     # the operator ^= Performs Bitwise OR on operands and assign value to left operand. This means that the 
+#     # value of white is flipped between 0 and 1 after each move.
+#     white ^= 1
+#     #cnt+=1
     
-    moves += 1
-    #board_evaluation = evaluate(board.fen().split()[0])
-    #evaluations.append(board_evaluation)
+#     moves += 1
+#     #board_evaluation = evaluate(board.fen().split()[0])
+#     #evaluations.append(board_evaluation)
     
-#print("Average Time per move = ",sm/cnt)
-print(board)
-print(" ".join(pgn))
-print()
-#print(evaluations)
-print(board.result())
-game.headers["Result"] = board.result()
-#print(game)
-engine.quit()
+# #print("Average Time per move = ",sm/cnt)
+# print(board)
+# print(" ".join(pgn))
+# print()
+# #print(evaluations)
+# print(board.result())
+# game.headers["Result"] = board.result()
+# #print(game)
+# # engine.quit()
