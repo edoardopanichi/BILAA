@@ -26,7 +26,7 @@ class evaluation:
     
     # Simple NN that takes has input information about the board set up, and produce an single output that 
     # evaluate numerically the position of the board.
-    def simple_eval(self, image_shape = (8, 8, 12)):
+    def simple_eval_model(self, image_shape = (8, 8, 12)):
         
         model = Sequential()
         model.add(Dense(10, input_shape = image_shape))
