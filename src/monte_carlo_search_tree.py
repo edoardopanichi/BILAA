@@ -13,7 +13,7 @@ import chess.pgn
 import chess.engine
 import random
 import time
-from math import log,sqrt,e,inf
+from math import log, sqrt, e, inf
 
 class node():
     def __init__(self):

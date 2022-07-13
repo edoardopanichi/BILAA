@@ -1,3 +1,5 @@
 numpy
 chess
 stockfish
+keras
+tensorflow
