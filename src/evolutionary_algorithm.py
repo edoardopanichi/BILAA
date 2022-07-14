@@ -67,31 +67,46 @@ class genetic_algorithm:
             # 3. The genes of the parents are joined and a new child agent then holds the weight created 
             # by this operation.
         def crossover(agents, network, pop_size):
+            # The agents entering in this function have already been selected, i.e. they are the fittest 20%
+            # of the previous generation.
             offspring = []
             
+            # Given a the population size (pop_size), 80% of the new generation is obtained with crossover. 
+            # Each crossover generates two new agents.
             for _ in range((pop_size - len(agents)) // 2):
                 parent1 = random.choice(agents)
                 parent2 = random.choice(agents)
+                # Generation of two new agents, giving as input a blank NN model
                 child1 = Agent(network)
                 child2 = Agent(network)
                 
+                # get_weights(): Returns the current weights of the layer, as NumPy arrays. "shapes" is a list
+                # where each element is the shape of a layer of the NN.
                 shapes = [a.shape for a in parent1.neural_network.get_weights()]
+                # genes1 and genes2 are a long sequence containing the weights of the NN for the parent1 and
+                # parent2.
                 genes1 = np.concatenate([a.flatten() for a in parent1.neural_network.get_weights()])
                 genes2 = np.concatenate([a.flatten() for a in parent2.neural_network.get_weights()])
-                split = random.randint(0,len(genes1)-1)
+                # Picking a random point to divide the genes between parent1 and parent2
+                split = random.randint(0, len(genes1)-1)
 
                 child1_genes = np.array(genes1[0:split].tolist() + genes2[split:].tolist())
                 child2_genes = np.array(genes1[0:split].tolist() + genes2[split:].tolist())
-                child1_genes = unflatten(child1_genes,shapes)
-                child2_genes = unflatten(child2_genes,shapes)
+                # To use the child_genes as weights of the NN we need to structure them as list where each 
+                # element is contains the weights of a layer of the model. To do so we can exploit the 
+                # function unflatten.
+                child1_genes = unflatten(child1_genes, shapes)
+                child2_genes = unflatten(child2_genes, shapes)
                 
                 child1.apply_weights(list(child1_genes))
                 child2.apply_weights(list(child2_genes))
                 
                 offspring.append(child1)
                 offspring.append(child2)
-                
+            
+            # The extend() method modifies the original list adding the new elements to the list.
             agents.extend(offspring)
+            # agents now contains the 20% selected + the new crossover agents.
             return agents
         
         def mutation(agents):
@@ -111,7 +126,7 @@ class genetic_algorithm:
         loss = []
         for i in range(generations):
             print('Generation',str(i),':')
-            agents = generate_agents(pop_size,model)
+            agents = generate_agents(pop_size, model)
             agents = fitness(agents)
             agents = selection(agents)
             agents = crossover(agents,model,pop_size)
