@@ -35,10 +35,17 @@ class genetic_algorithm:
         def generate_agents(population, network):
             return [Agent(model) for _ in range(population)]
         
+        # First way to develop the EA is through selection: given a certain population, only the fittest
+        # are preserved.
         def selection(agents):
+            # sorting according to the fitness value of the agents, starting from the greater values
             agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)
+            # printing the fitness of each agent
             print('\n'.join(map(str, agents)))
+            # Out of the n agents we keep only 20%, in particular the first 20% of the list where the 
+            # fittest are kept.
             agents = agents[:int(0.2 * len(agents))]
+            
             return agents
         
         def unflatten(flattened, shapes):
@@ -50,14 +57,23 @@ class genetic_algorithm:
                 index += size
             return np.array(new_array)
         
-        def crossover(agents,network,pop_size):
+        # The second way to develop the EA is through the crossover step: the genes of fittest samples of
+        # the population are mixed to obtain new agents with characteristic coming from 2 previous fit 
+        # agents.
+        # Here is a step-by-step explanation:
+            # 1. Their weights are flattened so that values can be changed.
+            # 2. A random intersection point is found. This point is where the genetic information of one
+            # parent ends, and where the genetic information of one parent begins.
+            # 3. The genes of the parents are joined and a new child agent then holds the weight created 
+            # by this operation.
+        def crossover(agents, network, pop_size):
             offspring = []
+            
             for _ in range((pop_size - len(agents)) // 2):
                 parent1 = random.choice(agents)
                 parent2 = random.choice(agents)
                 child1 = Agent(network)
                 child2 = Agent(network)
-                
                 
                 shapes = [a.shape for a in parent1.neural_network.get_weights()]
                 genes1 = np.concatenate([a.flatten() for a in parent1.neural_network.get_weights()])
@@ -68,14 +84,13 @@ class genetic_algorithm:
                 child2_genes = np.array(genes1[0:split].tolist() + genes2[split:].tolist())
                 child1_genes = unflatten(child1_genes,shapes)
                 child2_genes = unflatten(child2_genes,shapes)
-            
                 
                 child1.apply_weights(list(child1_genes))
                 child2.apply_weights(list(child2_genes))
                 
-                
                 offspring.append(child1)
                 offspring.append(child2)
+                
             agents.extend(offspring)
             return agents
         
@@ -89,8 +104,8 @@ class genetic_algorithm:
                     randint = random.randint(0,len(flattened)-1)
                     flattened[randint] = np.random.randn()
 
-                    newarray = unflatten(flattened,shapes)
-                    agent.apply_weights(newarray)
+                    new_array = unflatten(flattened,shapes)
+                    agent.apply_weights(new_array)
             return agents
         
         loss = []
