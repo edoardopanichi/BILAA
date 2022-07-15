@@ -49,11 +49,16 @@ class genetic_algorithm:
             return agents
         
         def unflatten(flattened, shapes):
+            # "shapes" is a list where each element is the shape of a layer of the NN.
+            # "flattened" is a gene sequence of a new offspring. It has to be reordered as list where each 
+            # element is contains the weights of a layer of the model.
             new_array = []
             index = 0
             for shape in shapes:
+                # "size" indicates how many element of "flattened" forms a layer of weights for the NN.
                 size = np.product(shape)
                 new_array.append(flattened[index : index + size].reshape(shape))
+                # "index" has to be update to select the elements of the next layer
                 index += size
             return np.array(new_array)
         
@@ -109,34 +114,44 @@ class genetic_algorithm:
             # agents now contains the 20% selected + the new crossover agents.
             return agents
         
+        # Mutation receives agents that are already the new generation, i.e. agents after the function 
+        # "selection" and "crossover".
         def mutation(agents):
             for agent in agents:
+                # A mutation happens with a 10% probability
                 if random.uniform(0.0, 1.0) <= 0.1:
                     weights = agent.neural_network.get_weights()
                     shapes = [a.shape for a in weights]
 
                     flattened = np.concatenate([a.flatten() for a in weights])
-                    randint = random.randint(0,len(flattened)-1)
+                    # selection of a random index for the weights. This index is used to pick the weight to 
+                    # mutate.
+                    randint = random.randint(0, len(flattened)-1)
                     flattened[randint] = np.random.randn()
 
                     new_array = unflatten(flattened,shapes)
                     agent.apply_weights(new_array)
             return agents
         
-        loss = []
+        loss = [] # list to track the improvements generation after generation.
         for i in range(generations):
             print('Generation',str(i),':')
+            
             agents = generate_agents(pop_size, model)
             agents = fitness(agents)
             agents = selection(agents)
-            agents = crossover(agents,model,pop_size)
+            agents = crossover(agents, model, pop_size)
             agents = mutation(agents)
             agents = fitness(agents)
+            # "agents" are ordered from the fittest to the least fit. Hence "agent[0]" is the the best agent 
+            # of the generation.
             loss.append(agents[0].fitness)
+            
             if any(agent.fitness > threshold for agent in agents):
                 print('Threshold met at generation '+str(i)+' !')
-                
+            
+            # every 100 generation we clear the output of the terminal    
             if i % 100:
                 clear_output()
                 
-        return agents[0],loss
+        return agents[0], loss
