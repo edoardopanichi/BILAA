@@ -5,7 +5,7 @@ from keras.layers import Dense,Flatten
 # Simple NN model to evaluate a position on the board. The input shape is 8x8x12 because a chess game uses a 
 # 8x8 board and there are 12 different possible pieces 8: 6 whites and 6 blacks (King, Queen, Rook, Bishop, 
 # Knight, Pawn)
-class evaluation:
+class evaluator:
     def __init__(self):
         
         self.chess_dict = {

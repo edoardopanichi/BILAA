@@ -14,7 +14,7 @@ import chess.engine
 import random
 from math import log, sqrt, e, inf
 import numpy as np
-from evaluation_class import evaluation
+from evaluation_class import evaluator
 
 class node():
     def __init__(self):
@@ -35,7 +35,7 @@ class node():
 class MCTS:
     def __init__(self):
         # Instance of the evaluation function to have access to its functions
-        self.eval = evaluation()
+        self.eval = evaluator()
 
     # This metrics it is used by the MCTS to determine which is the action to take.
     # Here 10**-6 and 10**-10 are added to avoid 0 division exception.
