@@ -15,7 +15,6 @@ def fitness(agents):
         game = []
         board = chess.Board()
         
-        other_agents = agents
         # Selecting two agents to play a match and update their fitness score
         player_1 = agents[agent]
         player_2 = random.choice(agents)
