@@ -5,7 +5,7 @@ import random
 
 # Using the fitness function we can determine which agent should ensure better performances in terms of 
 # chances of winning a match.
-def fitness(agents):
+def fitness(agents, mcst_epochs, mcst_depth):
     
     # Initialization of the class that contains the monte-carlo search tree
     mcts = MCTS()
@@ -33,12 +33,12 @@ def fitness(agents):
                 return pred
             
             # Move for player 1
-            move =  mcts.simple_mcst(board, evaluation, epochs = 5, depth = 5)
+            move, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
             game.append(move)
             
             # Move for player 2
             model = player_2.neural_network
-            move =  mcts.simple_mcst(board, evaluation, epochs = 5, depth = 5)
+            move, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
             game.append(move)
             
             counter += 1

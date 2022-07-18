@@ -12,16 +12,25 @@ def sigmoid(x):
 
 class genetic_algorithm:
         
-    def execute(self, fitness, model, pop_size = 10, generations = 100, threshold = 1000):
+    def execute(self, fitness, model, pop_size = 10, generations = 100, threshold = 1000, mcst_epochs = 5, mcst_depth = 5):
         
         # The class agent allows us to define a player with its own model of the NN for the evaluation 
         # that it is used in the Monte Carlo search tree to evaluate a given position of the board.
         class Agent:
             def __init__(self, model):
-                # clone_model() by keras: Clone a Functional or Sequential Model instance
+                # clone_model() by keras: Clone a Functional or Sequential Model instance generating new 
+                # random weights.
                 self.neural_network = clone_model(model)
                 self.fitness = 100
                 self.game = None
+                # The following variables are filled only for the final agent obtained after the training. In 
+                # this way the instance Agent contains all the information to reproduce similar results.
+                self.training_time = None
+                self.pop_size = None
+                self.generations = None
+                self.mcst_epochs = None
+                self.mcst_depth = None
+                
                 
             # The __str__ method is called when the following functions are invoked on the object and 
             # return a string: print(), str()    
@@ -129,20 +138,39 @@ class genetic_algorithm:
                     randint = random.randint(0, len(flattened)-1)
                     flattened[randint] = np.random.randn()
 
-                    new_array = unflatten(flattened,shapes)
+                    new_array = unflatten(flattened, shapes)
                     agent.apply_weights(new_array)
             return agents
         
+        # Every new generation, 20% of the agents are obtained from the previous generation. For these onces, 
+        # we need to set the fitness back to zero to ensure a common starting point with the other agents.
+        def reset_fitness(agents):
+            for agent in agents:
+                agent.fitness = 100
+                
+            return agents
+        
         loss = [] # list to track the improvements generation after generation.
+        
+        
         for i in range(generations):
-            print('Generation',str(i),':')
+            print('\nGeneration', str(i), ':')
+            # In the first iteration we generate the starting agents and we evaluate their fitness score 
+            if i == 0:
+                agents = generate_agents(pop_size, model)  
+                agents = fitness(agents, mcst_epochs, mcst_depth)
+                
+            # For all the generation that are not the first, we start generating the new offspring, then we 
+            # evaluate the fitness score.
+            else:
+                agents = selection(agents)
+                agents = reset_fitness(agents)
+                agents = crossover(agents, model, pop_size)
+                agents = mutation(agents)
+                agents = fitness(agents, mcst_epochs, mcst_depth)
             
-            agents = generate_agents(pop_size, model)
-            agents = fitness(agents)
-            agents = selection(agents)
-            agents = crossover(agents, model, pop_size)
-            agents = mutation(agents)
-            agents = fitness(agents)
+            # sorting according to the fitness value of the agents, starting from the greater values
+            agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)     
             # "agents" are ordered from the fittest to the least fit. Hence "agent[0]" is the the best agent 
             # of the generation.
             loss.append(agents[0].fitness)
@@ -150,7 +178,6 @@ class genetic_algorithm:
             if any(agent.fitness > threshold for agent in agents):
                 print('Threshold met at generation '+str(i)+' !')
             
-            # every 100 generation we clear the output of the terminal    
             if i % 100:
                 clear_output()
                 
