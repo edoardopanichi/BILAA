@@ -15,6 +15,7 @@ import random
 from math import log, sqrt, e, inf
 import numpy as np
 from evaluation_class import evaluator
+import time
 
 class node():
     def __init__(self):
@@ -254,8 +255,13 @@ class MCTS:
                 # 8x8x12 inputs.   
                 translated = np.array(self.eval.translate(play_board))
                 scores[first_move] += evaluation_score(translated)
-        # We pick the move that leads to the state with the highest score.        
-        idx = np.where(scores == max(scores))[0][0]
+                
+        # We pick the move that leads to the state with the highest score.
+        if scores.size:
+            idx = np.where(scores == max(scores))[0][0]
+        else: 
+            idx = 0
+            print("problem with best move. Scores:", scores)
         
         return first_legal_moves[idx], scores
         

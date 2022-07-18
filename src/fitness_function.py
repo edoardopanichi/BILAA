@@ -2,6 +2,7 @@ import chess
 from evaluation_class import evaluator
 from monte_carlo_search_tree import MCTS
 import random
+import time
 
 # Using the fitness function we can determine which agent should ensure better performances in terms of 
 # chances of winning a match.
@@ -12,6 +13,7 @@ def fitness(agents, mcst_epochs, mcst_depth):
     
     # Each agent will play a match with another random agent. So averagely, each agent will play two matches.
     for agent in range(len(agents) - 1):
+        start_time = time.time()
         game = []
         board = chess.Board()
         
@@ -25,7 +27,7 @@ def fitness(agents, mcst_epochs, mcst_depth):
         print('Game Started between Agent', player_1_idx, 'and Agent', player_2_idx)
         counter = 0
         
-        while counter < 100 and board.is_game_over() == False:
+        while counter < 300 and board.is_game_over() == False:
             model = player_1.neural_network
             
             def evaluation(input):
@@ -34,12 +36,14 @@ def fitness(agents, mcst_epochs, mcst_depth):
             
             # Move for player 1
             move, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
+            board.push(move)
             game.append(move)
             
             # Move for player 2
             model = player_2.neural_network
             move, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
             game.append(move)
+            board.push(move)
             
             counter += 1
 
@@ -47,15 +51,21 @@ def fitness(agents, mcst_epochs, mcst_depth):
         agents[player_1_idx].game = game
         agents[player_2_idx].game = game
 
-        if board.is_checkmate:
+        # If one of the two agent won, we update the fitness scores.
+        #
+        if (board.outcome()):
+            if(board.outcome().winner):
             # The counter helps us understand if the winner was player 1 or player 2.
-            if counter % 2 == 0:
-                agents[player_1_idx].fitness *= 1.5
-                agents[player_2_idx].fitness *= 0.8
+                print("Updating fitness...")
+                if counter % 2 == 0:
+                    agents[player_1_idx].fitness *= 1.5
+                    agents[player_2_idx].fitness *= 0.8
+                    
+                else:
+                    agents[player_2_idx].fitness *= 1.5
+                    agents[player_1_idx].fitness *= 0.8
                 
-            else:
-                agents[player_2_idx].fitness *= 1.5
-                agents[player_1_idx].fitness *= 0.8
+        print("one game takes:", time.time()-start_time, ",and counter is:", str(counter))
                 
     return agents
 
