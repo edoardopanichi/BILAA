@@ -31,6 +31,11 @@ class stockfish_eng:
         move = self.engine.get_best_move()
         
         return move
+    
+    def ELO_and_skill_value(self, elo, skill):
+        self.engine.set_elo_rating(elo)
+        self.engine.set_skill_level(skill)
+        
         
 
     

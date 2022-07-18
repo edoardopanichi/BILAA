@@ -50,6 +50,7 @@ class genetic_algorithm:
             # sorting according to the fitness value of the agents, starting from the greater values
             agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)
             # printing the fitness of each agent
+            print("The loss of the agents of the previous generation was: \n")
             print('\n'.join(map(str, agents)))
             # Out of the n agents we keep only 20%, in particular the first 20% of the list where the 
             # fittest are kept.
