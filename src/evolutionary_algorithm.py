@@ -70,7 +70,7 @@ class genetic_algorithm:
                 new_array.append(flattened[index : index + size].reshape(shape))
                 # "index" has to be update to select the elements of the next layer
                 index += size
-            return np.array(new_array)
+            return np.array(new_array, dtype=object)
         
         # The second way to develop the EA is through the crossover step: the genes of fittest samples of
         # the population are mixed to obtain new agents with characteristic coming from 2 previous fit 

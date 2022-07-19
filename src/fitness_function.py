@@ -27,7 +27,7 @@ def fitness(agents, mcst_epochs, mcst_depth):
         print('Game Started between Agent', player_1_idx, 'and Agent', player_2_idx)
         counter = 0
         
-        while counter < 300 and board.is_game_over() == False:
+        while counter < 500 and board.is_game_over() == False:
             model = player_1.neural_network
             
             def evaluation(input):
@@ -38,14 +38,18 @@ def fitness(agents, mcst_epochs, mcst_depth):
             move, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
             board.push(move)
             game.append(move)
+            counter += 1
             
             # Move for player 2
-            model = player_2.neural_network
-            move, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
-            game.append(move)
-            board.push(move)
-            
-            counter += 1
+            # We need to check again if the match is over or not. It might be that the previous move ended the
+            # game.
+            if (board.is_game_over() == False):
+                model = player_2.neural_network
+                move, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
+                game.append(move)
+                board.push(move)
+                
+                counter += 1
 
         # For each agent we save the list of moves played in the game
         agents[player_1_idx].game = game
@@ -54,10 +58,12 @@ def fitness(agents, mcst_epochs, mcst_depth):
         # If one of the two agent won, we update the fitness scores.
         #
         if (board.outcome()):
+            print("outcome of the match: ", board.outcome())
+            
             if(board.outcome().winner):
             # The counter helps us understand if the winner was player 1 or player 2.
                 print("Updating fitness...")
-                if counter % 2 == 0:
+                if (counter % 2) != 0:
                     agents[player_1_idx].fitness *= 1.5
                     agents[player_2_idx].fitness *= 0.8
                     
@@ -65,7 +71,7 @@ def fitness(agents, mcst_epochs, mcst_depth):
                     agents[player_2_idx].fitness *= 1.5
                     agents[player_1_idx].fitness *= 0.8
                 
-        print("one game takes:", time.time()-start_time, ",and counter is:", str(counter))
+        print("one game takes:", time.time()-start_time, ", and counter is:", str(counter), "\n")
                 
     return agents
 
