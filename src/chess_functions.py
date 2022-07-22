@@ -93,11 +93,11 @@ class stockfish_eng:
                 
             # 'board.outcome().winner' is true if the game has been won by white
             if board.outcome().winner and stockfish_is_white: # i.e. Stockfish won
-                    print("stockfish wins with white")
+                    print("\n STOCKFISH WINS WITH WHITE")
                     EA_lost = True
                     
             elif (board.outcome().winner == False) and (not stockfish_is_white): # i.e. Stockfish won
-                print("stockfish wins with black")
+                print("\n STOCKFISH WINS WITH BLACK")
                 EA_lost = True    
             
             else: # i.e EA won or draw
