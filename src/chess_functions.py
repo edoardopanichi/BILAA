@@ -26,7 +26,7 @@ class stockfish_eng:
     def __init__(self):
         # Ubuntu: /home/edoardo/Desktop/BILAA/Stockfish-master/src/stockfish
         # Mac: /Users/edoardo/Desktop/BILAA/Stockfish-master/src/stockfish
-        self.engine = Stockfish(path="../Stockfish-master/src/stockfish")
+        self.engine = Stockfish(path="../Stockfish-master/src/stockfish", depth=2)
         
     def play_best_move(self, board):
         self.engine.set_fen_position(board.fen())
