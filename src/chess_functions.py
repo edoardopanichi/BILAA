@@ -24,9 +24,9 @@ class chessboard:
     
 class stockfish_eng:
     def __init__(self):
-        # Ubuntu: /home/edoardo/Desktop/BILAA/Stockfish-master/src/stockfish
-        # Mac: /Users/edoardo/Desktop/BILAA/Stockfish-master/src/stockfish
+        # More depth makes stockfish better
         self.engine = Stockfish(path="../Stockfish-master/src/stockfish", depth=2)
+        # engine2 = chess.engine.SimpleEngine.popen_uci(r"../Stockfish-master/src/stockfish")
         
     def play_best_move(self, board):
         self.engine.set_fen_position(board.fen())
@@ -34,15 +34,15 @@ class stockfish_eng:
         
         return move
     
-    def ELO_and_skill_value(self, elo, skill):
-        # Allowing to reduce Stockfish level (apparently the minimum ELO that stockfish can play is 1350 - 
-        # Quite high level!)
-        limit_strength = {'UCI_LimitStrength': 'true'}
-        self.engine._parameters.update(limit_strength)
-        self.engine.set_elo_rating(elo)
+    def skill_value(self, skill):
+        # Allowing to reduce Stockfish level (apparently the minimum Skill=0 that stockfish can play is 
+        # quite high level!)
+        # limit_strength = {'UCI_LimitStrength': 'true'}
+        # self.engine._parameters.update(limit_strength)
+        # self.engine.set_elo_rating(elo)
         self.engine.set_skill_level(skill)
     
-    def stockfish_vs_EA(self, agent, starting_elo, starting_skill, stockfish_is_white = True, mcst_epochs = 5, mcst_depth = 5):
+    def stockfish_vs_EA(self, agent, starting_skill, stockfish_is_white = True, mcst_epochs = 5, mcst_depth = 5):
         mcts = MCTS()
         model = agent.neural_network
                     
@@ -50,9 +50,7 @@ class stockfish_eng:
             pred = model(input.reshape(1, 8, 8, 12))
             return pred
         
-        self.ELO_and_skill_value(starting_elo, starting_skill)
-        print("questo si.")
-        print("parameters: ", self.engine.get_parameters())
+        self.skill_value(starting_skill)
         
         white = 1
         moves = 0
@@ -101,13 +99,16 @@ class stockfish_eng:
                 EA_lost = True    
             
             else: # i.e EA won or draw
-                starting_elo += 150
-                starting_skill += 1
-                self.ELO_and_skill_value(starting_elo, starting_skill)
+                # The maximum skill level for Stockfish is 21
+                if starting_skill < 20:
+                    starting_skill += 1
+                    self.skill_value(starting_skill)
+                else:
+                    return starting_skill, board
                 
             match += 1
             
-        return starting_elo, starting_skill, board
+        return starting_skill, board
         
         
         

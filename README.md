@@ -23,5 +23,5 @@
 
 ## To Do:
 - check the EA functions for possible bugs
-- correct the chess_function set_ELO_and_skills to just set_skills
+- correct the chess_function set_ELO_and_skills to just set_skills (done, to be tested)
 - create a new way to evaluate an agent based on stockfish evaluation (percentage of guesses that belong to the top 3 moves of stockfish)

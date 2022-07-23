@@ -13,7 +13,7 @@ def fitness(agents, mcst_epochs, mcst_depth):
     
     for _ in range(round(len(agents)/3)):
         # Each agent will play a match with another random agent. So averagely, each agent will play two matches.
-        for agent in range(len(agents) - 1):
+        for agent in range(len(agents)):
             start_time = time.time()
             game = []
             board = chess.Board()

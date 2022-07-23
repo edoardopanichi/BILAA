@@ -106,7 +106,7 @@ class genetic_algorithm:
                 split = random.randint(0, len(genes1)-1)
 
                 child1_genes = np.array(genes1[0:split].tolist() + genes2[split:].tolist())
-                child2_genes = np.array(genes2[0:split].tolist() + genes1[split:].tolist())
+                child2_genes = np.array(genes1[0:split].tolist() + genes2[split:].tolist())
                 # To use the child_genes as weights of the NN we need to structure them as list where each 
                 # element is contains the weights of a layer of the model. To do so we can exploit the 
                 # function unflatten.
@@ -159,6 +159,8 @@ class genetic_algorithm:
             # In the first iteration we generate the starting agents and we evaluate their fitness score 
             if i == 0:
                 agents = generate_agents(pop_size, model)  
+                print("exiting...")
+                return agents
                 agents = fitness(agents, mcst_epochs, mcst_depth)
                 
             # For all the generation that are not the first, we start generating the new offspring, then we 
@@ -183,3 +185,7 @@ class genetic_algorithm:
                 clear_output()
                 
         return agents[0], loss
+    
+    
+    '''TESTING THE FUNCTIONS'''
+    
