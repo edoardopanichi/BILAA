@@ -11,8 +11,11 @@ def fitness(agents, mcst_epochs, mcst_depth):
     # Initialization of the class that contains the monte-carlo search tree
     mcts = MCTS()
     
-    for _ in range(round(len(agents)/3)):
-        # Each agent will play a match with another random agent. So averagely, each agent will play two matches.
+    # Each agent faces 1/3 of the population to determine which agent is the fittest
+    for j in range(round(len(agents)/3)):
+        print("\nROUND", j)
+        
+        # Each agent will play a match with another random agent. 
         for agent in range(len(agents)):
             start_time = time.time()
             game = []
@@ -21,6 +24,10 @@ def fitness(agents, mcst_epochs, mcst_depth):
             # Selecting two agents to play a match and update their fitness score
             player_1 = agents[agent]
             player_2 = random.choice(agents)
+            
+            # Player 2 has to be different from Player 1 
+            while (player_1 == player_2):
+                player_2 = random.choice(agents)
             
             player_1_idx = agent
             player_2_idx = agents.index(player_2)
