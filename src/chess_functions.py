@@ -4,23 +4,41 @@ from stockfish import Stockfish
 from monte_carlo_search_tree import MCTS
 from IPython.display import clear_output
 
-class chessboard:
-    def __init__(self):
-        self.board = chess.Board()
+    
+def random_legal_move(board):
+    if board.is_game_over() == False:
+        legal_moves = list(board.legal_moves)
         
-    def random_legal_move(self):
-        if self.board.is_game_over() == False:
-            legal_moves = list(self.board.legal_moves)
+        rand_move = np.random.randint(len(legal_moves))
+        board.push(legal_moves[rand_move])
+        game_finished = False
             
-            rand_move = np.random.randint(len(legal_moves))
-            self.board.push(legal_moves[rand_move])
-            game_finished = False
+    else: 
+        print(board.outcome())
+        game_finished = True
+        
+    return game_finished
+
+def random_board_setup(board, moves_played = 25):
+    position_ok = False
+    while (position_ok == False): 
+        for i in range(moves_played):
+            if board.is_game_over() == False:
+                legal_moves = list(board.legal_moves)
                 
-        else: 
-            print(self.board.outcome())
-            game_finished = True
+                rand_move = np.random.randint(len(legal_moves))
+                board.push(legal_moves[rand_move])
             
-        return game_finished
+            # If the previous move ended the game, we withdraw the move.       
+            else: 
+                board.pop()
+                
+        # If the position obtained allows further moves, then we stop the function. Otherwise we reset 
+        # the board and we try again a new random position.  
+        if (board.outcome() == None):  
+            position_ok = True
+        else:
+            board = chess.Board()
     
 class stockfish_eng:
     def __init__(self):
@@ -109,6 +127,24 @@ class stockfish_eng:
             match += 1
             
         return starting_skill, board
+    
+    # It generates a list of the top n moves and a list of the evaluation of the final position for each 
+    # of the moves.
+    def top_moves(self, board, num_of_moves = 3):
+        
+        self.engine.set_fen_position(board.fen())
+        
+        # best_moves is a list of dictionaries
+        best_moves = self.engine.get_top_moves(num_of_moves)
+        
+        top_moves = []
+        centipawn = [] # The centipawn is the unit of measure used in chess as measure of the advantage.
+        # A centipawn is equal to 1/100 of a pawn. Therefore, 100 centipawns = 1 pawn. 
+        for move in best_moves:
+            top_moves.append(move["Move"])
+            centipawn.append(move["Centipawn"])
+            
+        return top_moves, centipawn
         
         
         
