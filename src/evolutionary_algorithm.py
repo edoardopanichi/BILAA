@@ -7,9 +7,6 @@ import tensorflow as tf
 # The following is a command to suppress some output when using tensorflow library
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-def sigmoid(x):
-    return 1/(1+np.exp(-x))
-
 class genetic_algorithm:
         
     def execute(self, fitness, model, pop_size = 10, generations = 100, threshold = 1000, mcst_epochs = 5, mcst_depth = 5):
@@ -30,6 +27,8 @@ class genetic_algorithm:
                 self.generations = None
                 self.mcst_epochs = None
                 self.mcst_depth = None
+                self.description = None
+                self.loss_progression = None
                 
                 
             # The __str__ method is called when the following functions are invoked on the object and 
@@ -183,3 +182,31 @@ class genetic_algorithm:
                 clear_output()
                 
         return agents[0], loss
+    
+# This class is used to save on external files the trained models   
+class Agent_copy:
+        def __init__(self):
+            self.neural_network =  None
+            self.fitness = None
+            self.game = None
+            # The following variables are filled only for the final agent obtained after the training. In 
+            # this way the instance Agent contains all the information to reproduce similar results.
+            self.training_time = None
+            self.pop_size = None
+            self.generations = None
+            self.mcst_epochs = None
+            self.mcst_depth = None
+            self.description = None
+            self.loss_progression = None
+            
+        def copy_agent(self, agent):
+            self.neural_network = agent.neural_network
+            self.fitness = agent.fitness
+            self.game = agent.game
+            self.training_time = agent.training_time
+            self.pop_size = agent.pop_size
+            self.generations = agent.generations
+            self.mcst_epochs = agent.mcst_epochs
+            self.mcst_depth = agent.mcst_depth
+            self.description = agent.description
+            self.loss_progression = agent.loss_progression
