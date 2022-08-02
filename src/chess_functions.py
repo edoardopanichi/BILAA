@@ -70,6 +70,7 @@ class stockfish_eng:
         
         self.skill_value(starting_skill)
         
+        moves_list = [] # to store how many moves each match lasted
         white = 1
         moves = 0
         EA_lost = False
@@ -125,8 +126,9 @@ class stockfish_eng:
                     return starting_skill, board
                 
             match += 1
+            moves_list.append(moves)
             
-        return starting_skill, board
+        return starting_skill, board, moves_list
     
     # It generates a list of the top n moves and a list of the evaluation of the final position for each 
     # of the moves.

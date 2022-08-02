@@ -9,7 +9,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class genetic_algorithm:
         
-    def execute(self, fitness, model, pop_size = 10, generations = 100, threshold = 1000, mcst_epochs = 5, mcst_depth = 5):
+    def execute(self, fitness, model, pop_size = 10, generations = 100, mcst_epochs = 5, mcst_depth = 5):
         
         # The class agent allows us to define a player with its own model of the NN for the evaluation 
         # that it is used in the Monte Carlo search tree to evaluate a given position of the board.
@@ -20,6 +20,7 @@ class genetic_algorithm:
                 self.neural_network = clone_model(model)
                 self.fitness = 100
                 self.game = None
+                
                 # The following variables are filled only for the final agent obtained after the training. In 
                 # this way the instance Agent contains all the information to reproduce similar results.
                 self.training_time = None
@@ -29,7 +30,8 @@ class genetic_algorithm:
                 self.mcst_depth = None
                 self.description = None
                 self.loss_progression = None
-                
+                self.gen_wins = None # with this list we keep track of how many games are won in each 
+                # generation
                 
             # The __str__ method is called when the following functions are invoked on the object and 
             # return a string: print(), str()    
@@ -151,6 +153,7 @@ class genetic_algorithm:
             return agents
         
         loss = [] # list to track the improvements generation after generation.
+        gen_wins = [] # list to track how many matches ends with a win in each generation
         
         
         for i in range(generations):
@@ -158,7 +161,7 @@ class genetic_algorithm:
             # In the first iteration we generate the starting agents and we evaluate their fitness score 
             if i == 0:
                 agents = generate_agents(pop_size, model)  
-                agents = fitness(agents, mcst_epochs, mcst_depth)
+                agents, wins = fitness(agents, mcst_epochs, mcst_depth)
                 
             # For all the generation that are not the first, we start generating the new offspring, then we 
             # evaluate the fitness score.
@@ -167,21 +170,19 @@ class genetic_algorithm:
                 agents = reset_fitness(agents)
                 agents = crossover(agents, model, pop_size)
                 agents = mutation(agents)
-                agents = fitness(agents, mcst_epochs, mcst_depth)
+                agents, wins = fitness(agents, mcst_epochs, mcst_depth)
             
+            gen_wins.append(wins)
             # sorting according to the fitness value of the agents, starting from the greater values
             agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)     
             # "agents" are ordered from the fittest to the least fit. Hence "agent[0]" is the the best agent 
             # of the generation.
             loss.append(agents[0].fitness)
             
-            if any(agent.fitness > threshold for agent in agents):
-                print('Threshold met at generation '+str(i)+' !')
-            
             if i % 100:
                 clear_output()
                 
-        return agents[0], loss
+        return agents[0], loss, gen_wins
     
 # This class is used to save on external files the trained models   
 class Agent_copy:
@@ -198,6 +199,7 @@ class Agent_copy:
             self.mcst_depth = None
             self.description = None
             self.loss_progression = None
+            self.gen_wins = None
             
         def copy_agent(self, agent):
             self.neural_network = agent.neural_network
@@ -210,3 +212,4 @@ class Agent_copy:
             self.mcst_depth = agent.mcst_depth
             self.description = agent.description
             self.loss_progression = agent.loss_progression
+            self.gen_wins = agent.gen_wins

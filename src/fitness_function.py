@@ -10,6 +10,8 @@ def fitness(agents, mcst_epochs, mcst_depth):
     
     # Initialization of the class that contains the monte-carlo search tree
     mcts = MCTS()
+    # Variable to account for the number of wins among the agents
+    wins = 0
     
     # Each agent faces 1/3 of the population to determine which agent is the fittest
     for j in range(round(len(agents)/3)):
@@ -35,7 +37,7 @@ def fitness(agents, mcst_epochs, mcst_depth):
             print('Game Started between Agent', player_1_idx, 'and Agent', player_2_idx)
             counter = 0
             
-            while counter < 500 and board.is_game_over() == False:
+            while counter < 300 and board.is_game_over() == False:
                 model = player_1.neural_network
                 
                 def evaluation(input):
@@ -60,11 +62,10 @@ def fitness(agents, mcst_epochs, mcst_depth):
                     counter += 1
 
             # For each agent we save the list of moves played in the game
-            agents[player_1_idx].game = game
-            agents[player_2_idx].game = game
+            # agents[player_1_idx].game = game
+            # agents[player_2_idx].game = game
 
             # If one of the two agent won, we update the fitness scores.
-            #
             if (board.outcome()):
                 print("outcome of the match: ", board.outcome())
                 
@@ -79,7 +80,9 @@ def fitness(agents, mcst_epochs, mcst_depth):
                         agents[player_2_idx].fitness *= 1.5
                         agents[player_1_idx].fitness *= 0.8
                     
+                    wins += 1
+                    
             print("one game takes:", time.time()-start_time, ", and counter is:", str(counter), "\n")
                 
-    return agents
+    return agents, wins
 
