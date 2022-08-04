@@ -37,7 +37,7 @@ def fitness(agents, mcst_epochs, mcst_depth):
             print('Game Started between Agent', player_1_idx, 'and Agent', player_2_idx)
             counter = 0
             
-            while counter < 1 and board.is_game_over() == False:
+            while counter < 300 and board.is_game_over() == False:
                 model = player_1.neural_network
                 
                 def evaluation(input):
