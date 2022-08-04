@@ -1,8 +1,10 @@
+from audioop import avg
 import random
 import numpy as np
 from IPython.display import clear_output
 from keras.models import clone_model
 import tensorflow as tf
+from chess_functions import stockfish_eng
 
 # The following is a command to suppress some output when using tensorflow library
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -32,6 +34,7 @@ class genetic_algorithm:
                 self.loss_progression = None
                 self.gen_wins = None # with this list we keep track of how many games are won in each 
                 # generation
+                self.gen_moves = None
                 
             # The __str__ method is called when the following functions are invoked on the object and 
             # return a string: print(), str()    
@@ -152,9 +155,25 @@ class genetic_algorithm:
                 
             return agents
         
+        def moves_against_stockfish(agent, mcst_epochs, mcst_depth):
+            engine = stockfish_eng()
+            moves = []
+            
+            # We let the best agent of the generation play 10 games against stockfish to understand in how 
+            # many moves the game ends
+            for i in range(10):
+                _, _, num_moves = engine.stockfish_vs_EA(agent, starting_skill=0, stockfish_is_white=True, mcst_epochs=mcst_epochs, mcst_depth=mcst_depth)
+                moves.extend(num_moves)
+                
+            avg_moves = sum(moves) / len(moves)
+                
+            return avg_moves
+        
+        
+        
         loss = [] # list to track the improvements generation after generation.
         gen_wins = [] # list to track how many matches ends with a win in each generation
-        
+        gen_moves = []
         
         for i in range(generations):
             print('\nGeneration', str(i), ':')
@@ -172,17 +191,20 @@ class genetic_algorithm:
                 agents = mutation(agents)
                 agents, wins = fitness(agents, mcst_epochs, mcst_depth)
             
-            gen_wins.append(wins)
             # sorting according to the fitness value of the agents, starting from the greater values
-            agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)     
+            agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)  
             # "agents" are ordered from the fittest to the least fit. Hence "agent[0]" is the the best agent 
-            # of the generation.
+            # of the generation.   
+            avg_moves = moves_against_stockfish(agents[0], mcst_epochs, mcst_depth)
+            
             loss.append(agents[0].fitness)
+            gen_wins.append(wins)
+            gen_moves.append(avg_moves)
             
             if i % 100:
                 clear_output()
                 
-        return agents[0], loss, gen_wins
+        return agents[0], loss, gen_wins, gen_moves
     
 # This class is used to save on external files the trained models   
 class Agent_copy:
@@ -200,6 +222,7 @@ class Agent_copy:
             self.description = None
             self.loss_progression = None
             self.gen_wins = None
+            self.gen_moves = None
             
         def copy_agent(self, agent):
             self.neural_network = agent.neural_network
@@ -213,3 +236,4 @@ class Agent_copy:
             self.description = agent.description
             self.loss_progression = agent.loss_progression
             self.gen_wins = agent.gen_wins
+            self.gen_moves = agent.gen_moves

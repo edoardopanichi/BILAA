@@ -60,7 +60,7 @@ class stockfish_eng:
         # self.engine.set_elo_rating(elo)
         self.engine.set_skill_level(skill)
     
-    def stockfish_vs_EA(self, agent, starting_skill, stockfish_is_white = True, mcst_epochs = 5, mcst_depth = 5):
+    def stockfish_vs_EA(self, agent, starting_skill, stockfish_is_white = True, mcst_epochs = 5, mcst_depth = 5, printing=False):
         mcts = MCTS()
         model = agent.neural_network
                     
@@ -79,7 +79,9 @@ class stockfish_eng:
         while (EA_lost==False):
             clear_output()
             board = chess.Board()
-            print("started match", str(match), "!")
+            
+            if printing:
+                print("started match", str(match), "!")
             
             while((not board.is_game_over())):       
                 
@@ -87,20 +89,24 @@ class stockfish_eng:
                 if stockfish_is_white:
                     if white:
                         result = self.play_best_move(board)
-                        print("stockfish (white) plays: ", result)
+                        if printing:
+                            print("stockfish (white) plays: ", result)
                         board.push_san(result)
                     else:
                         result, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
-                        print("EA (black) plays: ", result)   
+                        if printing:
+                            print("EA (black) plays: ", result)   
                         board.push(result) 
                 else:
                     if white:
                         result, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
-                        print("EA (white) plays: ", result)   
+                        if printing:
+                            print("EA (white) plays: ", result)   
                         board.push(result) 
                     else:
                         result = self.play_best_move(board)
-                        print("stockfish (black) plays: ", result)
+                        if printing:
+                            print("stockfish (black) plays: ", result)
                         board.push_san(result) 
                 
                 # the operator ^= Performs Bitwise OR on operands and assign value to left operand. This means that the 
@@ -110,11 +116,13 @@ class stockfish_eng:
                 
             # 'board.outcome().winner' is true if the game has been won by white
             if board.outcome().winner and stockfish_is_white: # i.e. Stockfish won
-                    print("\n STOCKFISH WINS WITH WHITE")
+                    if printing:
+                        print("\n STOCKFISH WINS WITH WHITE")
                     EA_lost = True
                     
             elif (board.outcome().winner == False) and (not stockfish_is_white): # i.e. Stockfish won
-                print("\n STOCKFISH WINS WITH BLACK")
+                if printing:
+                    print("\n STOCKFISH WINS WITH BLACK")
                 EA_lost = True    
             
             else: # i.e EA won or draw
