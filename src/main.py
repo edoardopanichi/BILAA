@@ -14,8 +14,8 @@ mcst_epochs = 8
 mcst_depth = 3
 
 # with this parameters crashes at gen 14 due to lack of memory
-pop_size = 15
-generations = 15
+pop_size = 20
+generations = 5
 mcst_epochs = 8
 mcst_depth = 2
 
@@ -29,7 +29,7 @@ ga = genetic_algorithm()
 
 
 start_time = time.time() # To measure the time needed to train the models.
-agent, loss, gen_wins, gen_moves = ga.execute(fitness_func, eval_model.simple_eval_model(), pop_size = pop_size, generations = generations, mcst_epochs = mcst_epochs, mcst_depth = mcst_depth)
+agent, loss, gen_wins, gen_moves = ga.execute(fitness_func, eval_model.simple_eval_model(), prev_agent=None, pop_size = pop_size, generations = generations, mcst_epochs = mcst_epochs, mcst_depth = mcst_depth)
 
 # Updating some information about the set parameters to obtain "agent". These are useful for some data analysis and 
 # parameters adjustment later on.

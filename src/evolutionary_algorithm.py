@@ -11,7 +11,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class genetic_algorithm:
         
-    def execute(self, fitness, model, pop_size = 10, generations = 100, mcst_epochs = 5, mcst_depth = 5):
+    def execute(self, fitness, model, prev_agent = None, pop_size = 10, generations = 100, mcst_epochs = 5, mcst_depth = 5):
         
         # The class agent allows us to define a player with its own model of the NN for the evaluation 
         # that it is used in the Monte Carlo search tree to evaluate a given position of the board.
@@ -45,7 +45,7 @@ class genetic_algorithm:
                 self.neural_network.set_weights(weights)
             
         # Generation of the desired amount of agents with the same model of NN.   
-        def generate_agents(population, network):
+        def generate_agents(population):
             return [Agent(model) for _ in range(population)]
         
         # First way to develop the EA is through selection: given a certain population, only the fittest
@@ -179,7 +179,15 @@ class genetic_algorithm:
             print('\nGeneration', str(i), ':')
             # In the first iteration we generate the starting agents and we evaluate their fitness score 
             if i == 0:
-                agents = generate_agents(pop_size, model)  
+                if prev_agent == None:
+                    agents = generate_agents(pop_size)  
+                # If we start from a already trained agent we generate one less agent
+                else:
+                    agents = generate_agents(pop_size - 1)
+                    agents.append(prev_agent)  
+                
+                for agent in agents:
+                    print(agent.fitness)    
                 agents, wins = fitness(agents, mcst_epochs, mcst_depth)
                 
             # For all the generation that are not the first, we start generating the new offspring, then we 
