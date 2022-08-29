@@ -187,7 +187,8 @@ class genetic_algorithm:
                     agents.append(prev_agent)  
                 
                 for agent in agents:
-                    print(agent.fitness)    
+                    print(agent.fitness)  
+                      
                 agents, wins = fitness(agents, mcst_epochs, mcst_depth)
                 
             # For all the generation that are not the first, we start generating the new offspring, then we 
@@ -245,3 +246,8 @@ class Agent_copy:
             self.loss_progression = agent.loss_progression
             self.gen_wins = agent.gen_wins
             self.gen_moves = agent.gen_moves
+        
+        # This function is needed if in the first generation a mutation happens to an agent developed in a 
+        # previous run, then it is saved in form of agent copy.    
+        def apply_weights(self, weights):
+                self.neural_network.set_weights(weights)
