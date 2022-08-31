@@ -2,8 +2,7 @@ import pickle
         
 # set the variable 'file_empty' to True when trained_models.pkl is empty or when you what to delete the content. 
 # To delete the content assign 'yes' to 'store'.  
-def load_store_models(file_empty=False, agent_copy=None, store=str("no")):
-    save_filename = "keras_models/trained_models.pkl"
+def load_store_models(file_empty=False, agent_copy=None, store=str("no"), save_filename=str("keras_models/trained_models.pkl")):
 
     # if the file is not empty, we load its content into a variable.
     if file_empty == False:

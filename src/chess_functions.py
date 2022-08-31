@@ -63,12 +63,13 @@ class stockfish_eng:
     def stockfish_vs_EA(self, agent, starting_skill, stockfish_is_white = True, mcst_epochs = 5, mcst_depth = 5, printing=False):
         mcts = MCTS()
         model = agent.neural_network
+        skill_level = starting_skill
                     
         def evaluation(input):
             pred = model(input.reshape(1, 8, 8, 12))
             return pred
         
-        self.skill_value(starting_skill)
+        self.skill_value(skill_level)
         
         moves_list = [] # to store how many moves each match lasted
         white = 1
@@ -127,16 +128,16 @@ class stockfish_eng:
             
             else: # i.e EA won or draw
                 # The maximum skill level for Stockfish is 21
-                if starting_skill < 20:
-                    starting_skill += 1
-                    self.skill_value(starting_skill)
+                if skill_level < 20:
+                    skill_level += 1
+                    self.skill_value(skill_level)
                 else:
-                    return starting_skill, board
+                    return skill_level, board, moves_list
                 
             match += 1
             moves_list.append(moves)
             
-        return starting_skill, board, moves_list
+        return skill_level, board, moves_list
     
     # It generates a list of the top n moves and a list of the evaluation of the final position for each 
     # of the moves.
