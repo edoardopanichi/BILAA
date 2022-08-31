@@ -11,7 +11,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class genetic_algorithm:
         
-    def execute(self, fitness, model, prev_agent = None, pop_size = 10, generations = 100, mcst_epochs = 5, mcst_depth = 5):
+    def execute(self, fitness, model, prev_agents = None, pop_size = 10, generations = 100, mcst_epochs = 5, mcst_depth = 5):
         
         # The class agent allows us to define a player with its own model of the NN for the evaluation 
         # that it is used in the Monte Carlo search tree to evaluate a given position of the board.
@@ -46,6 +46,9 @@ class genetic_algorithm:
             
         # Generation of the desired amount of agents with the same model of NN.   
         def generate_agents(population):
+            if population == 0:
+                return []
+            
             return [Agent(model) for _ in range(population)]
         
         # First way to develop the EA is through selection: given a certain population, only the fittest
@@ -163,6 +166,13 @@ class genetic_algorithm:
             # many moves the game ends
             for i in range(10):
                 _, _, num_moves = engine.stockfish_vs_EA(agent, starting_skill=0, stockfish_is_white=True, mcst_epochs=mcst_epochs, mcst_depth=mcst_depth)
+                
+                # if the list num_moves is empty means that EA has won against stockfish
+                if not num_moves:
+                    # if EA wins we set num_moves to basically infinity. In this way reading the average
+                    # number of moves in the matches will be clear that EA won at least once.
+                    num_moves = [100000]
+                    
                 moves.extend(num_moves)
                 
             avg_moves = sum(moves) / len(moves)
@@ -179,16 +189,22 @@ class genetic_algorithm:
             print('\nGeneration', str(i), ':')
             # In the first iteration we generate the starting agents and we evaluate their fitness score 
             if i == 0:
-                if prev_agent == None:
+                if prev_agents == None:
                     agents = generate_agents(pop_size)  
                 # If we start from a already trained agent we generate one less agent
                 else:
-                    agents = generate_agents(pop_size - 1)
-                    agents.append(prev_agent)  
+                    num_prev_agents = len(prev_agents)
+                    agents = generate_agents(pop_size - num_prev_agents)
+                    
+                    for prev_agent in prev_agents:
+                        agents.append(prev_agent)  
                 
                 for agent in agents:
-                    print(agent.fitness)  
-                      
+                    print(agent.fitness) 
+                
+                # Reset the fitness in case there are some pre-trained agents
+                agents = reset_fitness(agents) 
+                
                 agents, wins = fitness(agents, mcst_epochs, mcst_depth)
                 
             # For all the generation that are not the first, we start generating the new offspring, then we 
