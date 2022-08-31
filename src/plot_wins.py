@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 
 # wins = [67.6, 77.8, 83.4, 88.3]
-wins = [19, 20, 21, 22, 21, 20, 22, 25, 20, 21, 23, 16, 23, 20, 23]
+wins = [17, 21.5, 20, 21, 23, 20.5, 21, 23.5, 20.5, 23.5, 23, 20, 24.5, 22, 22]
+
+
 
 generations = [i for i in range(1, 16)]
 print(generations)
