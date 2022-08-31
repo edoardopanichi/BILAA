@@ -3,3 +3,4 @@ chess
 stockfish
 keras
 tensorflow
+matplotlib
