@@ -34,9 +34,9 @@ class node():
         
 
 class MCTS:
-    def __init__(self):
+    def __init__(self, state_features=False):
         # Instance of the evaluation function to have access to its functions
-        self.eval = evaluator()
+        self.eval = evaluator(include_state=state_features)
 
     # This metrics it is used by the MCTS to determine which is the action to take.
     # Here 10**-6 and 10**-10 are added to avoid 0 division exception.
@@ -222,15 +222,21 @@ class MCTS:
 
     # The following algorithm implements a simpler version of the MCST where each leaf of the tree is explored 
     # for 5 steps and not till the end of the game. This algorithm relies on a NN to evaluate a given position.
-    def simple_mcst(self, board, evaluation_score, epochs = 5, depth = 5):
+    def simple_mcst(self, board, evaluation_score, epochs=5, depth=5,
+                    root_perspective=False, terminal_reward=None,
+                    random_ties=False):
 
         first_legal_moves = list(board.legal_moves)
+        root_turn = board.turn
         # initialization of the scores to one for each available legal move.
         scores = np.ones(len(first_legal_moves))
         
         # According to the number of epochs and depth we randomly explore the possible actions given the 
         # initial board position.
         for epoch in range(epochs):
+            positions = []
+            position_indices = []
+            epoch_values = np.zeros(len(first_legal_moves), dtype=np.float32)
 
             for first_move in range(len(first_legal_moves)):
                 # Copying the board set-up to try a new line of the game.
@@ -251,17 +257,37 @@ class MCTS:
                     else:
                         break
                 
-                # If we want to evaluate a given position with the NN we need to translate the data into 
-                # 8x8x12 inputs.   
-                translated = np.array(self.eval.translate(play_board))
-                scores[first_move] += evaluation_score(translated)
+                # Translate the candidate position into the evaluator's input representation.
+                outcome = play_board.outcome()
+                if terminal_reward is not None and outcome is not None:
+                    if outcome.winner is not None:
+                        if root_perspective:
+                            sign = 1.0 if outcome.winner == root_turn else -1.0
+                        else:
+                            sign = 1.0 if outcome.winner == chess.WHITE else -1.0
+                        epoch_values[first_move] = terminal_reward * sign
+                else:
+                    positions.append(np.asarray(self.eval.translate(play_board), dtype=np.float32))
+                    position_indices.append(first_move)
+
+            if positions:
+                values = np.asarray(evaluation_score(np.asarray(positions))).reshape(-1)
+                if len(values) != len(positions):
+                    raise ValueError(
+                        "The evaluation callback must return one value per position."
+                    )
+                if root_perspective and root_turn == chess.BLACK:
+                    values = -values
+                epoch_values[position_indices] = values
+
+            scores += epoch_values
                 
         # We pick the move that leads to the state with the highest score.
         if scores.size:
-            idx = np.where(scores == max(scores))[0][0]
+            best_indices = np.where(scores == max(scores))[0]
+            idx = random.choice(best_indices.tolist()) if random_ties else best_indices[0]
         else: 
             idx = 0
             print("problem with best move. Scores:", scores)
         
         return first_legal_moves[idx], scores
-        

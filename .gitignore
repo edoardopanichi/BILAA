@@ -1,3 +1,7 @@
 venv
 src/__pycache__
 Stockfish-master
+.jupyter/
+.matplotlib/
+.ipynb_checkpoints/
+.training_runs/

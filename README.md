@@ -1,6 +1,6 @@
 # Evolutionary Algorithm to play chess
 
-***Abstract:*** The aim was to develop an evolutionary algorithm able to learn the game of chess starting from zero background. The algorithm relies on four crucial components: an evaluation function, the Monte Carlo search tree, a fitness function, and the evolutionary algorithm itself that determines how the agents have evolved generation after generation. With the code ready, I trained ten agents making them evolve for four generations, keeping the population size fixed at twenty specimens. Then these ten agents have been employed as the starting point for new training of fifteen generations with a population size equal to ten. The evaluation of the improvements has been conducted using two metrics: wins per generation and moves against Stockfish.
+***Abstract:*** The aim was to develop an evolutionary algorithm able to learn the game of chess starting from zero background. The algorithm relies on four crucial components: an evaluation function, a Monte Carlo search tree, a fitness function, and the evolutionary algorithm itself. The current training path uses balanced self-play, state-aware board inputs, terminal rewards, batched inference, and enhanced genetic variation. Evaluation should be performed after training against fixed tactical positions and Stockfish rather than benchmarking Stockfish after every generation.
 
 If you want more information read the paper related at https://www.overleaf.com/read/cmwhybhqdrfr.
 
@@ -10,11 +10,47 @@ If you want more information read the paper related at https://www.overleaf.com/
 Before running the code follow the step illustrate in the section of this README called "Install Stockfish".
 
 ## How to use the code
-1. The necessary packages are listed in the file [requirements.txt](requirements.txt). If anything else is needed, the compiler will tell you more about it.
+1. Use Python 3.14 and create a virtual environment from the repository root:
+    ```powershell
+    python -m venv venv
+    .\venv\Scripts\Activate.ps1
+    python -m pip install --upgrade pip
+    python -m pip install -r requirements.txt
+    ```
+
+   The project uses Keras 3 with the PyTorch backend because the stable TensorFlow package does not currently provide a native Windows Python 3.14 wheel.
 
 2. Follow the instructions in the section of this README called "Install Stockfish".
 
-3. Open the [main.ipynb](./src/main.ipynb) and follow the markdown description to understand what each section does.
+3. Start Jupyter from the `src` directory so the notebook's module and model paths resolve correctly:
+    ```powershell
+    cd src
+    New-Item -ItemType Directory -Force ..\.jupyter\config, ..\.jupyter\data, ..\.jupyter\runtime, ..\.jupyter\ipython, ..\.matplotlib | Out-Null
+    $env:JUPYTER_CONFIG_DIR = (Resolve-Path ..\.jupyter\config)
+    $env:JUPYTER_DATA_DIR = (Resolve-Path ..\.jupyter\data)
+    $env:JUPYTER_RUNTIME_DIR = (Resolve-Path ..\.jupyter\runtime)
+    $env:IPYTHONDIR = (Resolve-Path ..\.jupyter\ipython)
+    $env:MPLCONFIGDIR = (Resolve-Path ..\.matplotlib)
+    $env:KERAS_BACKEND = "torch"
+    python -m jupyter notebook main.ipynb
+    ```
+
+4. Open the cells in [main.ipynb](./src/main.ipynb) and follow the markdown description. The training cells can take a long time to finish.
+
+### Recommended training budget
+
+The practical configuration used for the current training path is:
+
+```text
+population/actors: 10
+generations: 10
+MCST epochs: 2
+MCST depth: 2
+games per actor: 2, with both colors balanced
+training horizon: 30 plies per game
+```
+
+The per-generation Stockfish benchmark is disabled during training because it does not affect selection and substantially increases runtime. Run the Stockfish evaluation cell after training instead.
 
 ## Structure of the code
 The code is subdivided into 9 files, I will quickly mention what each file does. Each file should be self-explanatory thanks to the comment inside.
@@ -41,17 +77,27 @@ In particular, this fitness function works by simulating multiple matches agains
 
 ## Install Stockfish:
 
-> Tested on Ubuntu 22.04 and macOS 12.4.
+The code expects the Stockfish executable at `Stockfish-master/src/stockfish.exe` on Windows, or `Stockfish-master/src/stockfish` on Linux/macOS.
+
+For Windows, download the official x86-64 AVX2 build from the [Stockfish releases](https://github.com/official-stockfish/Stockfish/releases/latest), extract it, and place or rename the executable as:
+
+```text
+Stockfish-master/src/stockfish.exe
+```
+
+The Python code resolves this path from the repository location, so it no longer depends on the directory from which Jupyter was started.
+
+For Linux/macOS, the source-build instructions are:
 
 - download the repository: https://github.com/official-stockfish/Stockfish
 - Execute the following commands in the terminal:
     ```bash 
-        cd src
+        cd Stockfish-master/src
         make help
         make net
         make build ARCH=x86-64-modern
     ```
-- Then if you move the folder Stockfish-master into the folder of this repository, the code will work correctly. Otherwise, you need to modify the absolute path where the stockfish engine is initialized. For example: Stockfish(path="/Users/edoardo/Downloads/Stockfish-master/src/stockfish")
+- Then move the `Stockfish-master` folder into the folder of this repository.
 
 ## Documentation: 
 Some libraries used in this project:

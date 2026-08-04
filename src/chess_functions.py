@@ -1,8 +1,10 @@
 import chess
 import numpy as np
+from pathlib import Path
 from stockfish import Stockfish
-from monte_carlo_search_tree import MCTS
+from evaluation_class import prediction_to_values
 from IPython.display import clear_output
+from monte_carlo_search_tree import MCTS
 
     
 def random_legal_move(board):
@@ -43,7 +45,20 @@ def random_board_setup(board, moves_played = 25):
 class stockfish_eng:
     def __init__(self):
         # More depth makes stockfish better
-        self.engine = Stockfish(path="../Stockfish-master/src/stockfish", depth=2)
+        engine_dir = Path(__file__).resolve().parent.parent / "Stockfish-master" / "src"
+        engine_candidates = (
+            engine_dir / "stockfish.exe",
+            engine_dir / "stockfish",
+            engine_dir / "stockfish-windows-x86-64-avx2.exe",
+        )
+        engine_path = next((path for path in engine_candidates if path.is_file()), None)
+        if engine_path is None:
+            expected = ", ".join(str(path) for path in engine_candidates)
+            raise FileNotFoundError(
+                "Stockfish executable not found. Expected one of: " + expected
+            )
+
+        self.engine = Stockfish(path=str(engine_path), depth=2)
         # engine2 = chess.engine.SimpleEngine.popen_uci(r"../Stockfish-master/src/stockfish")
         
     def play_best_move(self, board):
@@ -60,26 +75,45 @@ class stockfish_eng:
         # self.engine.set_elo_rating(elo)
         self.engine.set_skill_level(skill)
     
-    def stockfish_vs_EA(self, agent, starting_skill, stockfish_is_white = True, mcst_epochs = 5, mcst_depth = 5, printing=False):
-        mcts = MCTS()
+    def stockfish_vs_EA(
+        self,
+        agent,
+        starting_skill,
+        stockfish_is_white=True,
+        mcst_epochs=5,
+        mcst_depth=5,
+        printing=False,
+        root_perspective=None,
+        terminal_reward=None,
+        random_ties=False,
+    ):
         model = agent.neural_network
+        input_shape = getattr(model, "input_shape", (None, 8, 8, 12))
+        state_features = input_shape[-1] > 12
+        mcts = MCTS(state_features=state_features)
+        if root_perspective is None:
+            root_perspective = state_features
+        if terminal_reward is None and state_features:
+            terminal_reward = 5.0
         skill_level = starting_skill
                     
         def evaluation(input):
-            pred = model(input.reshape(1, 8, 8, 12))
-            return pred
+            batch = np.asarray(input)
+            if batch.ndim == 3:
+                batch = batch[None, ...]
+            return prediction_to_values(model(batch))
         
         self.skill_value(skill_level)
         
         moves_list = [] # to store how many moves each match lasted
-        white = 1
-        moves = 0
         EA_lost = False
         match = 1
         
         while (EA_lost==False):
             clear_output()
             board = chess.Board()
+            white = 1
+            moves = 0
             
             if printing:
                 print("started match", str(match), "!")
@@ -94,13 +128,29 @@ class stockfish_eng:
                             print("stockfish (white) plays: ", result)
                         board.push_san(result)
                     else:
-                        result, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
+                        result, _ = mcts.simple_mcst(
+                            board,
+                            evaluation,
+                            epochs=mcst_epochs,
+                            depth=mcst_depth,
+                            root_perspective=root_perspective,
+                            terminal_reward=terminal_reward,
+                            random_ties=random_ties,
+                        )
                         if printing:
                             print("EA (black) plays: ", result)   
                         board.push(result) 
                 else:
                     if white:
-                        result, _ = mcts.simple_mcst(board, evaluation, epochs = mcst_epochs, depth = mcst_depth)
+                        result, _ = mcts.simple_mcst(
+                            board,
+                            evaluation,
+                            epochs=mcst_epochs,
+                            depth=mcst_depth,
+                            root_perspective=root_perspective,
+                            terminal_reward=terminal_reward,
+                            random_ties=random_ties,
+                        )
                         if printing:
                             print("EA (white) plays: ", result)   
                         board.push(result) 
@@ -114,6 +164,8 @@ class stockfish_eng:
                 # value of white is flipped between 0 and 1 after each move.
                 white ^= 1
                 moves += 1
+
+            moves_list.append(moves)
                 
             # 'board.outcome().winner' is true if the game has been won by white
             if board.outcome().winner and stockfish_is_white: # i.e. Stockfish won
@@ -135,7 +187,6 @@ class stockfish_eng:
                     return skill_level, board, moves_list
                 
             match += 1
-            moves_list.append(moves)
             
         return skill_level, board, moves_list
     
@@ -159,6 +210,4 @@ class stockfish_eng:
         
         
         
-        
 
-    

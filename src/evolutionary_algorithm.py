@@ -1,17 +1,29 @@
-from audioop import avg
+import os
+os.environ.setdefault("KERAS_BACKEND", "torch")
+
 import random
 import numpy as np
 from IPython.display import clear_output
 from keras.models import clone_model
-import tensorflow as tf
 from chess_functions import stockfish_eng
-
-# The following is a command to suppress some output when using tensorflow library
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 class genetic_algorithm:
         
-    def execute(self, fitness, model, prev_agents = None, pop_size = 10, generations = 100, mcst_epochs = 5, mcst_depth = 5):
+    def execute(
+        self,
+        fitness,
+        model,
+        prev_agents=None,
+        pop_size=10,
+        generations=100,
+        mcst_epochs=5,
+        mcst_depth=5,
+        benchmark_every_generation=False,
+        verbose=True,
+        variation_mode="legacy",
+        mutation_gene_rate=0.01,
+        mutation_scale=0.1,
+    ):
         
         # The class agent allows us to define a player with its own model of the NN for the evaluation 
         # that it is used in the Monte Carlo search tree to evaluate a given position of the board.
@@ -54,11 +66,15 @@ class genetic_algorithm:
         # First way to develop the EA is through selection: given a certain population, only the fittest
         # are preserved.
         def selection(agents):
+            if variation_mode == "enhanced":
+                agents = list(agents)
+                random.shuffle(agents)
             # sorting according to the fitness value of the agents, starting from the greater values
             agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)
             # printing the fitness of each agent
-            print("The loss of the agents of the previous generation was: \n")
-            print('\n'.join(map(str, agents)))
+            if verbose:
+                print("The loss of the agents of the previous generation was: \n")
+                print('\n'.join(map(str, agents)))
             # Out of the n agents we keep only 20%, in particular the first 20% of the list where the 
             # fittest are kept.
             agents = agents[:int(0.2 * len(agents))]
@@ -73,7 +89,7 @@ class genetic_algorithm:
             index = 0
             for shape in shapes:
                 # "size" indicates how many element of "flattened" forms a layer of weights for the NN.
-                size = np.product(shape)
+                size = np.prod(shape)
                 new_array.append(flattened[index : index + size].reshape(shape))
                 # "index" has to be update to select the elements of the next layer
                 index += size
@@ -88,7 +104,29 @@ class genetic_algorithm:
             # parent ends, and where the genetic information of one parent begins.
             # 3. The genes of the parents are joined and a new child agent then holds the weight created 
             # by this operation.
+        def enhanced_crossover(agents, network, pop_size):
+            offspring = []
+            for _ in range((pop_size - len(agents)) // 2):
+                parent1, parent2 = random.sample(agents, 2)
+                child1 = Agent(network)
+                child2 = Agent(network)
+                weights1 = parent1.neural_network.get_weights()
+                weights2 = parent2.neural_network.get_weights()
+                child1_weights = []
+                child2_weights = []
+                for weight1, weight2 in zip(weights1, weights2):
+                    mask = np.random.random(weight1.shape) < 0.5
+                    child1_weights.append(np.where(mask, weight1, weight2))
+                    child2_weights.append(np.where(mask, weight2, weight1))
+                child1.apply_weights(child1_weights)
+                child2.apply_weights(child2_weights)
+                offspring.extend((child1, child2))
+            agents.extend(offspring)
+            return agents
+
         def crossover(agents, network, pop_size):
+            if variation_mode == "enhanced":
+                return enhanced_crossover(agents, network, pop_size)
             # The agents entering in this function have already been selected, i.e. they are the fittest 20%
             # of the previous generation.
             offspring = []
@@ -133,6 +171,19 @@ class genetic_algorithm:
         
         # Mutation receives agents that are already the new generation, i.e. agents after the function 
         # "selection" and "crossover".
+        def enhanced_mutation(agents, elite_count):
+            for index, agent in enumerate(agents):
+                if index < elite_count:
+                    continue
+                weights = agent.neural_network.get_weights()
+                mutated_weights = []
+                for weight in weights:
+                    mask = np.random.random(weight.shape) < mutation_gene_rate
+                    noise = np.random.normal(0.0, mutation_scale, size=weight.shape)
+                    mutated_weights.append(weight + mask * noise)
+                agent.apply_weights(mutated_weights)
+            return agents
+
         def mutation(agents):
             for agent in agents:
                 # A mutation happens with a 10% probability
@@ -186,7 +237,8 @@ class genetic_algorithm:
         gen_moves = []
         
         for i in range(generations):
-            print('\nGeneration', str(i), ':')
+            if verbose:
+                print('\nGeneration', str(i), ':')
             # In the first iteration we generate the starting agents and we evaluate their fitness score 
             if i == 0:
                 if prev_agents == None:
@@ -200,7 +252,8 @@ class genetic_algorithm:
                         agents.append(prev_agent)  
                 
                 for agent in agents:
-                    print(agent.fitness) 
+                    if verbose:
+                        print(agent.fitness)
                 
                 # Reset the fitness in case there are some pre-trained agents
                 agents = reset_fitness(agents) 
@@ -212,21 +265,28 @@ class genetic_algorithm:
             else:
                 agents = selection(agents)
                 agents = reset_fitness(agents)
+                elite_count = len(agents)
                 agents = crossover(agents, model, pop_size)
-                agents = mutation(agents)
+                if variation_mode == "enhanced":
+                    agents = enhanced_mutation(agents, elite_count)
+                else:
+                    agents = mutation(agents)
                 agents, wins = fitness(agents, mcst_epochs, mcst_depth)
             
             # sorting according to the fitness value of the agents, starting from the greater values
             agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)  
             # "agents" are ordered from the fittest to the least fit. Hence "agent[0]" is the the best agent 
             # of the generation.   
-            avg_moves = moves_against_stockfish(agents[0], mcst_epochs, mcst_depth)
+            if benchmark_every_generation:
+                avg_moves = moves_against_stockfish(agents[0], mcst_epochs, mcst_depth)
+            else:
+                avg_moves = None
             
             loss.append(agents[0].fitness)
             gen_wins.append(wins)
             gen_moves.append(avg_moves)
             
-            if i % 100:
+            if verbose and i % 100:
                 clear_output()
                 
         return agents[0], loss, gen_wins, gen_moves

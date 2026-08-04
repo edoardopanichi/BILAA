@@ -2,5 +2,7 @@ numpy
 chess
 stockfish
 keras
-tensorflow
 matplotlib
+jupyter
+ipykernel
+torch

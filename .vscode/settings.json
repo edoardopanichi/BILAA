@@ -6,5 +6,6 @@
         "mcst",
         "mcts",
         "unflatten"
-    ]
+    ],
+    "python.defaultInterpreterPath": "${workspaceFolder}\\venv\\Scripts\\python.exe"
 }
