@@ -43,11 +43,14 @@ The practical configuration used for the current training path is:
 
 ```text
 population/actors: 10
-generations: 10
-MCST epochs: 2
-MCST depth: 2
-games per actor: 2, with both colors balanced
-training horizon: 30 plies per game
+generations: 40
+MCST epochs: 3
+MCST depth: 3
+games per actor: 4, with both colors balanced
+training horizon: 60 plies per game
+fitness: normalized robust score over fixed rotating openings
+training tie-breaking: deterministic, with a seeded rollout stream
+global best: preserved and returned after the run
 ```
 
 The per-generation Stockfish benchmark is disabled during training because it does not affect selection and substantially increases runtime. Run the Stockfish evaluation cell after training instead.

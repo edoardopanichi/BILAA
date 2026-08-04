@@ -23,6 +23,7 @@ class genetic_algorithm:
         variation_mode="legacy",
         mutation_gene_rate=0.01,
         mutation_scale=0.1,
+        preserve_global_best=False,
     ):
         
         # The class agent allows us to define a player with its own model of the NN for the evaluation 
@@ -77,9 +78,20 @@ class genetic_algorithm:
                 print('\n'.join(map(str, agents)))
             # Out of the n agents we keep only 20%, in particular the first 20% of the list where the 
             # fittest are kept.
-            agents = agents[:int(0.2 * len(agents))]
+            elite_count = max(1, int(0.2 * len(agents)))
+            agents = agents[:elite_count]
+            if preserve_global_best and global_best is not None:
+                agents.append(snapshot_agent(global_best))
+                agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)
+                agents = agents[:elite_count]
             
             return agents
+
+        def snapshot_agent(agent):
+            snapshot = Agent(model)
+            snapshot.apply_weights(agent.neural_network.get_weights())
+            snapshot.fitness = agent.fitness
+            return snapshot
         
         def unflatten(flattened, shapes):
             # "shapes" is a list where each element is the shape of a layer of the NN.
@@ -235,6 +247,7 @@ class genetic_algorithm:
         loss = [] # list to track the improvements generation after generation.
         gen_wins = [] # list to track how many matches ends with a win in each generation
         gen_moves = []
+        global_best = None
         
         for i in range(generations):
             if verbose:
@@ -277,19 +290,25 @@ class genetic_algorithm:
             agents = sorted(agents, key=lambda agent: agent.fitness, reverse=True)  
             # "agents" are ordered from the fittest to the least fit. Hence "agent[0]" is the the best agent 
             # of the generation.   
+            if preserve_global_best and (
+                global_best is None or agents[0].fitness > global_best.fitness
+            ):
+                global_best = snapshot_agent(agents[0])
+
+            best_agent = global_best if preserve_global_best else agents[0]
             if benchmark_every_generation:
-                avg_moves = moves_against_stockfish(agents[0], mcst_epochs, mcst_depth)
+                avg_moves = moves_against_stockfish(best_agent, mcst_epochs, mcst_depth)
             else:
                 avg_moves = None
             
-            loss.append(agents[0].fitness)
+            loss.append(best_agent.fitness)
             gen_wins.append(wins)
             gen_moves.append(avg_moves)
             
             if verbose and i % 100:
                 clear_output()
                 
-        return agents[0], loss, gen_wins, gen_moves
+        return best_agent, loss, gen_wins, gen_moves
     
 # This class is used to save on external files the trained models   
 class Agent_copy:

@@ -30,26 +30,30 @@ import numpy as np
 from chess_functions import stockfish_eng
 from evaluation_class import evaluator, prediction_to_values
 from evolutionary_algorithm import genetic_algorithm
-from fitness_function import fitness
+from fitness_function import DEFAULT_OPENING_SEQUENCES, fitness
 from monte_carlo_search_tree import MCTS
 
 
 CONFIG = {
     "seed": 123,
     "population": 10,
-    "generations": 360,
-    "mcst_epochs": 2,
-    "mcst_depth": 2,
-    "max_plies": 30,
-    "games_per_agent": 2,
+    "generations": 40,
+    "mcst_epochs": 3,
+    "mcst_depth": 3,
+    "max_plies": 60,
+    "games_per_agent": 4,
     "state_features": True,
     "root_perspective": True,
     "terminal_reward": 5.0,
-    "draw_material_weight": 0.25,
-    "random_ties": True,
+    "draw_material_weight": 0.1,
+    "random_ties": False,
+    "scoring": "robust",
+    "evaluation_seed": 123,
+    "opening_positions": len(DEFAULT_OPENING_SEQUENCES),
     "variation_mode": "enhanced",
     "mutation_gene_rate": 0.01,
     "mutation_scale": 0.1,
+    "preserve_global_best": True,
     "architecture": "local",
     "stockfish_skill": 0,
     "stockfish_depth": 2,
@@ -170,34 +174,44 @@ def main():
         architecture=CONFIG["architecture"]
     )
     generation_counter = [0]
+    generation_metrics = []
     training_started = time.perf_counter()
 
     def training_fitness(agents, mcst_epochs, mcst_depth):
-        result_agents, wins = fitness(
+        generation_index = generation_counter[0]
+        result_agents, decisive_games = fitness(
             agents,
             mcst_epochs,
             mcst_depth,
             max_plies=CONFIG["max_plies"],
             verbose=False,
             schedule="balanced",
-            scoring="score",
+            scoring=CONFIG["scoring"],
             games_per_agent=CONFIG["games_per_agent"],
             state_features=CONFIG["state_features"],
             root_perspective=CONFIG["root_perspective"],
             terminal_reward=CONFIG["terminal_reward"],
             draw_material_weight=CONFIG["draw_material_weight"],
             random_ties=CONFIG["random_ties"],
+            opening_sequences=DEFAULT_OPENING_SEQUENCES,
+            evaluation_seed=CONFIG["evaluation_seed"] + generation_index,
         )
         generation_counter[0] += 1
+        metrics = dict(getattr(fitness, "last_metrics", {}))
+        metrics["generation"] = generation_counter[0]
+        generation_metrics.append(metrics)
         best = max(agent.fitness for agent in result_agents)
         elapsed = time.perf_counter() - training_started
         print(
             f"generation={generation_counter[0]}/{CONFIG['generations']} "
-            f"best_fitness={best:.6f} decisive_wins={wins} "
+            f"best_fitness={best:.6f} decisive_games={decisive_games} "
+            f"white_wins={metrics.get('white_wins', 0)} "
+            f"black_wins={metrics.get('black_wins', 0)} "
+            f"draws={metrics.get('draws', 0)} "
             f"elapsed_seconds={elapsed:.1f}",
             flush=True,
         )
-        return result_agents, wins
+        return result_agents, decisive_games
 
     algorithm = genetic_algorithm()
     best_agent, loss, gen_wins, _ = algorithm.execute(
@@ -213,6 +227,7 @@ def main():
         variation_mode=CONFIG["variation_mode"],
         mutation_gene_rate=CONFIG["mutation_gene_rate"],
         mutation_scale=CONFIG["mutation_scale"],
+        preserve_global_best=CONFIG["preserve_global_best"],
     )
     training_seconds = time.perf_counter() - training_started
 
@@ -234,8 +249,9 @@ def main():
         "stockfish_evaluation_seconds": stockfish_seconds,
         "best_fitness": _json_float(best_agent.fitness),
         "loss_progression": [_json_float(value) for value in loss],
-        "generation_wins": [int(value) for value in gen_wins],
-        "total_decisive_wins": int(sum(gen_wins)),
+        "generation_decisive_games": [int(value) for value in gen_wins],
+        "total_decisive_games": int(sum(gen_wins)),
+        "generation_metrics": generation_metrics,
         "training_games": int(
             CONFIG["generations"]
             * CONFIG["population"]

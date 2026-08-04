@@ -6,6 +6,25 @@ import random
 import time
 
 
+DEFAULT_OPENING_SEQUENCES = (
+    (),
+    ("e2e4", "e7e5", "g1f3", "b8c6"),
+    ("d2d4", "d7d5", "c2c4", "e7e6"),
+    ("c2c4", "e7e5", "g1f3", "b8c6"),
+    ("g1f3", "d7d5", "e2e4", "e7e6"),
+    ("b1c3", "g8f6", "e2e4", "d7d5"),
+    ("e2e4", "c7c5", "g1f3", "d7d6"),
+    ("d2d4", "g8f6", "c2c4", "g7g6"),
+)
+
+
+def _opening_board(sequence):
+    board = chess.Board()
+    for move in sequence:
+        board.push_uci(move)
+    return board
+
+
 def _material_balance(board):
     values = {
         chess.PAWN: 1.0,
@@ -35,6 +54,8 @@ def _balanced_fitness(
     random_ties,
     scoring,
     verbose,
+    opening_sequences=None,
+    evaluation_seed=None,
 ):
     if len(agents) < 2 or len(agents) % 2 != 0:
         raise ValueError("Balanced fitness requires an even population of at least two agents.")
@@ -42,10 +63,33 @@ def _balanced_fitness(
         raise ValueError("games_per_agent must be an even number of at least two.")
 
     mcts = MCTS(state_features=state_features)
-    wins = 0
+    if opening_sequences is None:
+        opening_sequences = ((),)
+    if not opening_sequences:
+        raise ValueError("opening_sequences must contain at least one sequence.")
 
-    def play_match(white_agent, black_agent):
-        board = chess.Board()
+    stats = {
+        "games": 0,
+        "decisive_games": 0,
+        "white_wins": 0,
+        "black_wins": 0,
+        "draws": 0,
+        "total_plies": 0,
+    }
+    score_totals = {id(agent): 0.0 for agent in agents}
+    game_counts = {id(agent): 0 for agent in agents}
+    schedule_rng = random.Random(evaluation_seed) if evaluation_seed is not None else None
+
+    def add_score(agent, value):
+        if scoring == "robust":
+            score_totals[id(agent)] += value
+            game_counts[id(agent)] += 1
+        else:
+            agent.fitness += value
+
+    def play_match(white_agent, black_agent, opening_sequence, match_seed=None):
+        board = _opening_board(opening_sequence)
+        rng = random.Random(match_seed) if match_seed is not None else None
         counter = 0
         while counter < max_plies and not board.is_game_over():
             current_agent = white_agent if board.turn == chess.WHITE else black_agent
@@ -65,10 +109,13 @@ def _balanced_fitness(
                 root_perspective=root_perspective,
                 terminal_reward=terminal_reward,
                 random_ties=random_ties,
+                rng=rng,
             )
             board.push(move)
             counter += 1
 
+        stats["games"] += 1
+        stats["total_plies"] += counter
         outcome = board.outcome()
         if scoring == "legacy":
             if outcome is not None and outcome.winner is not None:
@@ -78,36 +125,66 @@ def _balanced_fitness(
                 else:
                     black_agent.fitness *= 1.5
                     white_agent.fitness *= 0.8
+                stats["decisive_games"] += 1
+                if outcome.winner == chess.WHITE:
+                    stats["white_wins"] += 1
+                else:
+                    stats["black_wins"] += 1
                 return 1
+            stats["draws"] += 1
             return 0
 
         if outcome is not None and outcome.winner == chess.WHITE:
-            white_agent.fitness += 1.0
-            black_agent.fitness -= 1.0
+            add_score(white_agent, 1.0)
+            add_score(black_agent, -1.0)
+            stats["decisive_games"] += 1
+            stats["white_wins"] += 1
             return 1
         if outcome is not None and outcome.winner == chess.BLACK:
-            black_agent.fitness += 1.0
-            white_agent.fitness -= 1.0
+            add_score(black_agent, 1.0)
+            add_score(white_agent, -1.0)
+            stats["decisive_games"] += 1
+            stats["black_wins"] += 1
             return 1
 
+        stats["draws"] += 1
         margin = draw_material_weight * np.tanh(_material_balance(board) / 9.0)
-        white_agent.fitness += float(margin)
-        black_agent.fitness -= float(margin)
+        add_score(white_agent, float(margin))
+        add_score(black_agent, -float(margin))
         return 0
 
+    decisive_games = 0
     for round_index in range(games_per_agent // 2):
         order = list(range(len(agents)))
-        random.shuffle(order)
+        if schedule_rng is None:
+            random.shuffle(order)
+        else:
+            schedule_rng.shuffle(order)
         if verbose:
             print("\nBALANCED ROUND", round_index)
 
         for pair_index in range(0, len(order), 2):
             first = agents[order[pair_index]]
             second = agents[order[pair_index + 1]]
-            wins += play_match(first, second)
-            wins += play_match(second, first)
+            opening_index = round_index * (len(order) // 2) + pair_index // 2
+            opening_sequence = opening_sequences[opening_index % len(opening_sequences)]
+            match_seed = None
+            if evaluation_seed is not None:
+                match_seed = evaluation_seed + opening_index * 2
+            decisive_games += play_match(first, second, opening_sequence, match_seed)
+            decisive_games += play_match(second, first, opening_sequence, match_seed)
 
-    return agents, wins
+    if scoring == "robust":
+        for agent in agents:
+            average_score = score_totals[id(agent)] / game_counts[id(agent)]
+            agent.fitness = 100.0 + 10.0 * average_score
+
+    stats["average_plies"] = (
+        stats["total_plies"] / stats["games"] if stats["games"] else 0.0
+    )
+    _balanced_fitness.last_metrics = stats
+
+    return agents, decisive_games
 
 
 # Using the fitness function we can determine which agent should ensure better performances in terms of 
@@ -126,9 +203,11 @@ def fitness(
     terminal_reward=None,
     draw_material_weight=0.25,
     random_ties=False,
+    opening_sequences=None,
+    evaluation_seed=None,
 ):
     if schedule == "balanced" or scoring != "legacy" or state_features or root_perspective:
-        return _balanced_fitness(
+        result = _balanced_fitness(
             agents,
             mcst_epochs,
             mcst_depth,
@@ -141,7 +220,11 @@ def fitness(
             random_ties,
             scoring,
             verbose,
+            opening_sequences,
+            evaluation_seed,
         )
+        fitness.last_metrics = dict(_balanced_fitness.last_metrics)
+        return result
     
     # Initialization of the class that contains the monte-carlo search tree
     mcts = MCTS()
@@ -226,5 +309,6 @@ def fitness(
             if verbose:
                 print("This game took (in sec):", time.time()-start_time, ", and counter is:", str(counter), "\n")
                 
+    fitness.last_metrics = {}
     return agents, wins
 

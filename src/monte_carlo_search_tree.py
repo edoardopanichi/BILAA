@@ -224,10 +224,11 @@ class MCTS:
     # for 5 steps and not till the end of the game. This algorithm relies on a NN to evaluate a given position.
     def simple_mcst(self, board, evaluation_score, epochs=5, depth=5,
                     root_perspective=False, terminal_reward=None,
-                    random_ties=False):
+                    random_ties=False, rng=None):
 
         first_legal_moves = list(board.legal_moves)
         root_turn = board.turn
+        random_source = random if rng is None else rng
         # initialization of the scores to one for each available legal move.
         scores = np.ones(len(first_legal_moves))
         
@@ -252,7 +253,7 @@ class MCTS:
                     # List is empty --> False, 
                     # List is not empty --> True
                     if legal_moves:
-                        move = random.choice(legal_moves)
+                        move = random_source.choice(legal_moves)
                         play_board.push(move)
                     else:
                         break
@@ -285,7 +286,7 @@ class MCTS:
         # We pick the move that leads to the state with the highest score.
         if scores.size:
             best_indices = np.where(scores == max(scores))[0]
-            idx = random.choice(best_indices.tolist()) if random_ties else best_indices[0]
+            idx = random_source.choice(best_indices.tolist()) if random_ties else best_indices[0]
         else: 
             idx = 0
             print("problem with best move. Scores:", scores)
